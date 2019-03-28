@@ -31,12 +31,11 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
     }
 
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request,
-                                                HttpServletResponse response)
-                                                    throws AuthenticationException {
+    public Authentication attemptAuthentication(HttpServletRequest req,
+                                                HttpServletResponse res) throws AuthenticationException {
         try {
             UserLoginRequestModel creds = new ObjectMapper()
-                    .readValue(request.getInputStream(), UserLoginRequestModel.class);
+                    .readValue(req.getInputStream(), UserLoginRequestModel.class);
 
             return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -46,29 +45,29 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
             );
 
         } catch (IOException e) {
-            throw new RuntimeException();
+            throw new RuntimeException(e);
         }
     }
 
     @Override
-    protected void successfulAuthentication(HttpServletRequest request,
-                                            HttpServletResponse response,
+    protected void successfulAuthentication(HttpServletRequest req,
+                                            HttpServletResponse res,
                                             FilterChain chain,
-                                            Authentication authResult) throws IOException, ServletException {
+                                            Authentication auth) throws IOException, ServletException {
 
-        String userName = ((User) authResult.getPrincipal()).getUsername();
+        String userName = ((User) auth.getPrincipal()).getUsername();
 
         String token = Jwts.builder()
                 .setSubject(userName)
                 .setExpiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret())
+                .signWith(SignatureAlgorithm.HS512, SecurityConstants.getTokenSecret() )
                 .compact();
 
-        // use spring application context the get the user bean to use UserDetails
-        UserService userService = (UserService) SpringApplicationContext.getBean("userServiceImpl");
+        UserService userService = (UserService)SpringApplicationContext.getBean("userServiceImpl");
         UserDto userDto = userService.getUser(userName);
 
-        response.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants.TOKEN_PREFIX + token);
-        response.addHeader("UserID", userDto.getUserId());
+        res.addHeader(SecurityConstants.HEADER_STRING, SecurityConstants.TOKEN_PREFIX + token);
+        res.addHeader("UserID", userDto.getUserId());
+
     }
 }

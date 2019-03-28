@@ -15,53 +15,48 @@ import java.util.ArrayList;
 
 public class AuthorizationFilter extends BasicAuthenticationFilter {
 
-    public AuthorizationFilter(AuthenticationManager authenticationManager) {
-        super(authenticationManager);
+    public AuthorizationFilter(AuthenticationManager authManager) {
+        super(authManager);
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
+    protected void doFilterInternal(HttpServletRequest req,
+                                    HttpServletResponse res,
                                     FilterChain chain) throws IOException, ServletException {
 
-        // access the request header - Authorization header (see postman)
-        String header = request.getHeader(SecurityConstants.HEADER_STRING);
+        String header = req.getHeader(SecurityConstants.HEADER_STRING);
 
-        // header is null or does not start with Bearer prefix (very important!)
-        if(header == null || !header.startsWith(SecurityConstants.TOKEN_PREFIX)) {
-            chain.doFilter(request,response);
+        if (header == null || !header.startsWith(SecurityConstants.TOKEN_PREFIX)) {
+            chain.doFilter(req, res);
             return;
         }
 
-        UsernamePasswordAuthenticationToken authenticationToken = getAuthentication(request);
-        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-        chain.doFilter(request, response);
-
-
+        UsernamePasswordAuthenticationToken authentication = getAuthentication(req);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        chain.doFilter(req, res);
     }
 
-    // return user password authentication token
     private UsernamePasswordAuthenticationToken getAuthentication(HttpServletRequest request) {
 
-        String token = request.getHeader(SecurityConstants.TOKEN_PREFIX);
+        String token = request.getHeader(SecurityConstants.HEADER_STRING);
 
-        if(token != null) {
-            // replace the prefix with empty replacement string
-            // we don't need the bearer,  we need to get the token from the http request
+        if (token != null) {
+
+            // get rid of the prefix token (Bearer)
             token = token.replace(SecurityConstants.TOKEN_PREFIX, "");
 
             String user = Jwts.parser()
-                              .setSigningKey(SecurityConstants.getTokenSecret()) // without this secret key we cannot parse the token
-                              .parseClaimsJws(token)
-                              .getBody()
-                              .getSubject();
+                    .setSigningKey(SecurityConstants.getTokenSecret())
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
 
-            if(user != null) {
-                return new UsernamePasswordAuthenticationToken(user, null, new ArrayList());
+            if (user != null) {
+                return new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
             }
             return null;
         }
-
         return null;
     }
 }
+

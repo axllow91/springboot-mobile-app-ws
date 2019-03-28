@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AppProperties {
+
     // object to read properties files
     private final Environment env;
 

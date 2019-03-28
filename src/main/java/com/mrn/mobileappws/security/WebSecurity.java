@@ -25,19 +25,26 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
         http.csrf().disable().authorizeRequests()
                 .antMatchers(HttpMethod.POST, SecurityConstants.SIGN_UP_URL)
                 .permitAll()
+                .antMatchers(HttpMethod.GET, SecurityConstants.VERIFICATION_EMAIL_URL) // for verification email
+                .permitAll()
+                .antMatchers(HttpMethod.POST, SecurityConstants.PASSWORD_RESET_REQUEST_URL) // request to reset password
+                .permitAll()
+                .antMatchers(HttpMethod.POST, SecurityConstants.PASSWORD_RESET_URL) // password reset
+                .permitAll()
                 .anyRequest()
-                .authenticated().and().addFilter(getAuthenticationFilter())
+                .authenticated().and()
+                .addFilter(getAuthenticationFilter())
                 .addFilter(new AuthorizationFilter(authenticationManager()))
-                .sessionManagement() // make sure a single of a sure is auth
+                .sessionManagement() // make sure a single user is auth
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    public void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsService).passwordEncoder(bCryptPasswordEncoder);
     }
 
-    public AuthenticationFilter getAuthenticationFilter() throws Exception {
+    protected AuthenticationFilter getAuthenticationFilter() throws Exception {
         final AuthenticationFilter filter = new AuthenticationFilter(authenticationManager());
         filter.setFilterProcessesUrl("/users/login");
         return filter;
